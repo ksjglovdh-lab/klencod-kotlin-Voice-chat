@@ -1,0 +1,149 @@
+// واجهة المستخدم: الشاشات والقوائم والتنقل
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function fmtTime(ts){
+  return new Date(ts).toLocaleTimeString("ar", {hour:"2-digit", minute:"2-digit"});
+}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+const TAB_TITLES = { chats:"الدردشات", discover:"استكشاف", requests:"الطلبات", profile:"حسابي" };
+
+function setTab(tab){
+  db.currentTab = tab;
+  saveDB();
+  document.querySelectorAll("#bottomnav button").forEach(b =>
+    b.classList.toggle("active", b.dataset.tab === tab));
+  document.getElementById("topbar").innerHTML = "<h1>" + TAB_TITLES[tab] + "</h1>";
+  checkPending();
+  renderTab();
+}
+
+function renderTab(){
+  const v = document.getElementById("view");
+  if (db.currentTab === "chats") v.innerHTML = viewChats();
+  else if (db.currentTab === "discover") v.innerHTML = viewDiscover();
+  else if (db.currentTab === "requests") v.innerHTML = viewRequests();
+  else v.innerHTML = viewProfile();
+  v.scrollTop = 0;
+}
+
+function lastTs(msgs){ return msgs.length ? msgs[msgs.length-1].ts : 0; }
+
+// تبويب: الدردشات
+function viewChats(){
+  const ids = Object.keys(db.convos);
+  if (!ids.length)
+    return '<div class="empty">لا توجد دردشات بعد.<br>روح لتبويب «استكشاف» وابدأ 👋</div>';
+  ids.sort((a,b) => lastTs(db.convos[b]) - lastTs(db.convos[a]));
+  let html = '<div class="list">';
+  ids.forEach(id => {
+    const u = getUser(id);
+    if (!u) return;
+    const msgs = db.convos[id];
+    const last = msgs[msgs.length-1];
+    const unread = last.me ? "" : '<span class="badge">جديد</span>';
+    html += '<div class="item" onclick="openChat(\'' + id + '\')">' +
+      '<div class="avatar">' + u.emoji + '</div>' +
+      '<div class="item-body"><strong>' + esc(u.name) + '</strong>' +
+      '<small>' + esc(last.text) + '</small></div>' + unread + '</div>';
+  });
+  return html + '</div>';
+}
+
+// تبويب: استكشاف
+function viewDiscover(){
+  let html = "";
+  db.users.forEach(u => {
+    const chatting = db.convos[u.id];
+    const pending = db.requests.find(r => r.userId === u.id && r.status === "pending");
+    let btn;
+    if (chatting)
+      btn = '<button class="btn btn-green" onclick="openChat(\'' + u.id + '\')">محادثة 💬</button>';
+    else if (pending)
+      btn = '<button class="btn" disabled>بانتظار الرد ⏳</button>';
+    else
+      btn = '<button class="btn btn-blue" onclick="sendRequest(\'' + u.id + '\')">إرسال طلب ➤</button>';
+    const tags = u.interests.map(i =>
+      '<span class="interest-tag">' + esc(i) + '</span>').join("");
+    const dot = u.online ? '<span class="status-dot"></span>' : '';
+    html += '<div class="person">' +
+      '<div class="top"><div class="avatar">' + u.emoji + '</div>' +
+      '<div><strong>' + esc(u.name) + dot + '</strong><br>' +
+      '<small class="muted">' + (u.online ? "متصل الآن" : "غير متصل") + '</small></div></div>' +
+      '<div class="bio">' + esc(u.bio) + '</div>' +
+      '<div>' + tags + '</div>' +
+      '<div class="btns">' + btn + '</div></div>';
+  });
+  return html || '<div class="empty">لا يوجد أحد حالياً</div>';
+}
+
+// تبويب: الطلبات
+function viewRequests(){
+  let html = "";
+  db.requests.forEach(r => {
+    const u = getUser(r.userId);
+    if (!u) return;
+    const ok = r.status === "accepted";
+    const btn = ok
+      ? '<button class="btn btn-green" onclick="openChat(\'' + u.id + '\')">محادثة 💬</button>'
+      : '<span class="badge" style="background:var(--muted)">قيد الانتظار</span>';
+    html += '<div class="item"><div class="avatar">' + u.emoji + '</div>' +
+      '<div class="item-body"><strong>' + esc(u.name) + '</strong>' +
+      '<small>' + (ok ? "قبل طلبك ✅" : "بانتظار موافقته...") + '</small></div>' + btn + '</div>';
+  });
+  return html ? '<div class="list">' + html + '</div>'
+              : '<div class="empty">لا توجد طلبات.<br>أرسل طلباً من «استكشاف» 🧭</div>';
+}
+
+// تبويب: حسابي
+function viewProfile(){
+  const m = db.me;
+  const chatsCount = Object.keys(db.convos).length;
+  const reqCount = db.requests.filter(r => r.status === "accepted").length;
+  return '<div class="profile-head">' +
+    '<div class="avatar">' + m.emoji + '</div>' +
+    '<h2>' + esc(m.name) + '</h2>' +
+    '<p class="muted">' + esc(m.bio || "لا توجد نبذة") + '</p>' +
+    '<div>' + (m.interests || []).map(i => '<span class="interest-tag">' + esc(i) + '</span>').join("") + '</div>' +
+    '<div class="stats">' +
+    '<div class="stat"><b>' + chatsCount + '</b><small>دردشة</small></div>' +
+    '<div class="stat"><b>' + reqCount + '</b><small>أصدقاء</small></div>' +
+    '</div></div>' +
+    '<div class="profile-actions">' +
+    '<button class="btn" style="background:var(--card);color:var(--text)" onclick="restoreApp()">↩️ استرجاع النسخة الأخيرة</button>' +
+    '<button class="btn btn-danger" onclick="resetApp()">🗑️ حذف كل البيانات</button>' +
+    '<button class="btn" style="background:var(--card);color:var(--muted)" onclick="doLogout()">تسجيل الخروج</button>' +
+    '</div>';
+}
+
+// شاشة المحادثة
+function openChat(id){
+  const u = getUser(id);
+  if (!u) return;
+  db.currentChat = id;
+  document.getElementById("chat-name").textContent = u.emoji + " " + u.name;
+  document.getElementById("chat-status").textContent = u.online ? "متصل الآن" : "غير متصل";
+  renderMessages(id);
+  showScreen("chatscreen");
+}
+
+function closeChat(){
+  showScreen("app");
+  setTab(db.currentTab);
+}
+
+function renderMessages(id){
+  const box = document.getElementById("messages");
+  const msgs = db.convos[id] || [];
+  box.innerHTML = msgs.map(m =>
+    '<div class="msg ' + (m.me ? "me" : "them") + '">' +
+    '<span>' + esc(m.text) + '</span><small>' + fmtTime(m.ts) + '</small></div>'
+  ).join("");
+  box.scrollTop = box.scrollHeight;
+}

@@ -1,0 +1,122 @@
+/* تصميم تطبيق دردشة — ثيم داكن */
+:root{
+  --bg:#0e1116; --card:#171b22; --line:#262c36;
+  --text:#e8ecf1; --muted:#8b94a3;
+  --accent:#4f8cff; --green:#22c55e; --radius:14px;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{background:var(--bg); color:var(--text); font-family:system-ui,"Segoe UI",Tahoma,sans-serif}
+
+.screen{display:none; height:100dvh; flex-direction:column}
+.screen.active{display:flex}
+
+/* شاشة البداية */
+#splash{align-items:center; justify-content:center; gap:14px}
+#splash .logo{font-size:64px; animation:pop .8s ease}
+#splash .app-name{font-size:28px; letter-spacing:1px}
+.loadbar{width:120px; height:4px; background:var(--line); border-radius:4px; overflow:hidden}
+.loadbar::after{content:""; display:block; height:100%; width:40%; background:var(--accent);
+  border-radius:4px; animation:slide 1.1s infinite}
+@keyframes slide{from{transform:translateX(-120%)} to{transform:translateX(320%)}}
+@keyframes pop{from{transform:scale(.5); opacity:0} to{transform:scale(1); opacity:1}}
+
+/* الدخول */
+#login{align-items:center; justify-content:center; padding:20px}
+.login-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:26px; width:100%; max-width:400px}
+.login-card h1{margin-bottom:4px}
+.muted{color:var(--muted); font-size:14px; margin-bottom:18px}
+form label{display:block; font-size:13px; color:var(--muted); margin:14px 0 6px}
+input[type=text], textarea{width:100%; background:var(--bg); color:var(--text);
+  border:1px solid var(--line); border-radius:10px; padding:11px; font-size:15px; resize:none}
+input:focus, textarea:focus{outline:none; border-color:var(--accent)}
+.avatars{display:flex; gap:8px; flex-wrap:wrap}
+.avatars label{cursor:pointer}
+.avatars input{display:none}
+.avatars span{display:inline-block; font-size:26px; padding:6px; border-radius:10px;
+  background:var(--bg); border:1px solid var(--line)}
+.avatars input:checked + span{border-color:var(--accent); background:#1c2a45}
+.chips{display:flex; gap:8px; flex-wrap:wrap}
+.chip{padding:7px 13px; border-radius:20px; background:var(--bg); border:1px solid var(--line);
+  font-size:13px; cursor:pointer; user-select:none}
+.chip.selected{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn-primary{width:100%; margin-top:20px; padding:13px; border:none; border-radius:10px;
+  background:var(--accent); color:#fff; font-size:16px; font-weight:bold; cursor:pointer}
+
+/* الهيكل العام */
+#topbar{padding:18px 20px 10px; border-bottom:1px solid var(--line)}
+#view{flex:1; overflow-y:auto; padding:12px}
+#bottomnav{display:flex; border-top:1px solid var(--line); background:var(--card)}
+#bottomnav button{flex:1; background:none; border:none; color:var(--muted);
+  padding:10px 0 12px; font-size:20px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px}
+#bottomnav button span{font-size:11px}
+#bottomnav button.active{color:var(--accent)}
+
+/* القوائم */
+.list{display:flex; flex-direction:column; gap:10px}
+.item{display:flex; align-items:center; gap:12px; background:var(--card);
+  border:1px solid var(--line); border-radius:var(--radius); padding:12px; cursor:pointer}
+.item:active{background:#1d2330}
+.avatar{width:48px; height:48px; border-radius:50%; background:#1c2a45;
+  display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0}
+.item-body{flex:1; min-width:0}
+.item-body strong{display:block}
+.item-body small{color:var(--muted); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.badge{background:var(--green); color:#000; font-size:10px; font-weight:bold;
+  padding:2px 8px; border-radius:10px}
+.empty{text-align:center; color:var(--muted); padding:60px 20px; line-height:2}
+
+/* الاستكشاف */
+.person{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px; margin-bottom:10px}
+.person .top{display:flex; align-items:center; gap:12px; margin-bottom:8px}
+.person .bio{color:var(--muted); font-size:14px; margin-bottom:10px}
+.person .btns{display:flex; gap:8px}
+.btn{padding:9px 16px; border-radius:10px; border:none; cursor:pointer; font-size:14px; font-weight:bold}
+.btn-blue{background:var(--accent); color:#fff}
+.btn-green{background:var(--green); color:#000}
+.btn:disabled{background:var(--line); color:var(--muted)}
+.interest-tag{font-size:11px; background:var(--bg); border:1px solid var(--line);
+  padding:3px 10px; border-radius:12px; color:var(--muted); margin-inline-end:6px}
+.status-dot{width:8px; height:8px; border-radius:50%; background:var(--green); display:inline-block; margin-inline-start:6px}
+
+/* الحساب */
+.profile-head{display:flex; flex-direction:column; align-items:center; padding:20px; gap:6px}
+.profile-head .avatar{width:88px; height:88px; font-size:44px}
+.profile-head .stats{display:flex; gap:26px; margin-top:14px}
+.stat{text-align:center}
+.stat b{display:block; font-size:20px; color:var(--accent)}
+.stat small{color:var(--muted)}
+.profile-actions{display:flex; flex-direction:column; gap:10px; margin-top:16px}
+.btn-danger{background:#3b1519; color:#ff7b7b; border:1px solid #5c2027}
+
+/* شاشة المحادثة */
+#chatscreen{background:var(--bg)}
+.chat-head{display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line)}
+.chat-head .back{background:var(--card); border:none; color:var(--text); border-radius:10px;
+  width:38px; height:38px; font-size:18px; cursor:pointer; transform:scaleX(-1)}
+.chat-head strong{display:block}
+.chat-head small{color:var(--green); font-size:12px}
+#messages{flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:8px}
+.msg{max-width:78%; padding:9px 13px; border-radius:14px; font-size:15px; line-height:1.5}
+.msg small{display:block; font-size:10px; color:var(--muted); margin-top:3px}
+.msg.them{align-self:flex-start; background:var(--card); border:1px solid var(--line)}
+.msg.me{align-self:flex-end; background:var(--accent); color:#fff}
+.msg.me small{color:#cfe0ff}
+#typing{display:none; gap:4px; padding:0 18px 6px}
+#typing.show{display:flex}
+#typing span{width:7px; height:7px; background:var(--muted); border-radius:50%; animation:bounce .9s infinite}
+#typing span:nth-child(2){animation-delay:.15s}
+#typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)}}
+.chat-input{display:flex; gap:8px; padding:12px; border-top:1px solid var(--line)}
+.chat-input input{flex:1}
+.chat-input button{width:48px; border:none; border-radius:10px; background:var(--accent);
+  color:#fff; font-size:18px; cursor:pointer}
+
+/* التوست */
+#toasts{position:fixed; bottom:84px; right:0; left:0; display:flex; flex-direction:column;
+  align-items:center; gap:8px; pointer-events:none; z-index:99}
+.toast{background:var(--card); border:1px solid var(--line); color:var(--text);
+  padding:10px 20px; border-radius:20px; font-size:14px; animation:pop .25s ease}

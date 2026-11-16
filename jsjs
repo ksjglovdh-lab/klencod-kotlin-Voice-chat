@@ -1,0 +1,53 @@
+// قاعدة البيانات المحلية + نظام النسخ الاحتياطية
+const DB_KEY = "dardasha_db_v1";
+let db = null;
+
+function seedDB(){
+  return {
+    me: null,
+    users: JSON.parse(JSON.stringify(SEED_USERS)),
+    convos: JSON.parse(JSON.stringify(SEED_CONVOS)),
+    requests: [],
+    currentTab: "chats",
+    currentChat: null,
+    snapshots: []
+  };
+}
+
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(DB_KEY);
+    db = raw ? JSON.parse(raw) : seedDB();
+  }catch(e){ db = seedDB(); }
+  if (!db.snapshots) db.snapshots = [];
+}
+
+// يحفظ نسخة احتياطية قبل كل تغيير (بحد أقصى 10 نسخ)
+function saveDB(){
+  try{
+    const stripped = JSON.parse(JSON.stringify(db));
+    const snaps = stripped.snapshots;
+    delete stripped.snapshots;
+    snaps.push(JSON.stringify(stripped));
+    if (snaps.length > 10) snaps.shift();
+    stripped.snapshots = snaps;
+    localStorage.setItem(DB_KEY, JSON.stringify(stripped));
+  }catch(e){ /* التخزين غير متاح */ }
+}
+
+// استرجاع آخر نسخة احتياطية
+function restoreSnapshot(){
+  if (!db.snapshots.length) return false;
+  const snap = db.snapshots.pop();
+  db = JSON.parse(snap);
+  db.snapshots = db.snapshots || [];
+  saveDB();
+  return true;
+}
+
+function resetDB(){
+  try{ localStorage.removeItem(DB_KEY); }catch(e){}
+  db = seedDB();
+}
+
+function getUser(id){ return db.users.find(u => u.id === id); }
